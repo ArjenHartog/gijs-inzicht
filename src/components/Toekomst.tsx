@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { State } from '../model/store';
 import { projecteer } from '../tax/calc';
-import { Card, GetalInput, Leeg, eur, eurSigned } from './ui';
+import { Card, GetalInput, Leeg, eur, eurSigned, tooltipEur } from './ui';
 import { alleScenarios } from './Scenarios';
 
 const KLEUREN = ['#0f172a', '#2563eb', '#059669', '#d97706', '#dc2626', '#9333ea', '#0891b2', '#65a30d'];
@@ -46,7 +46,7 @@ export function Toekomst({ state }: { state: State }) {
               <CartesianGrid stroke="#e2e8f0" vertical={false} />
               <XAxis dataKey="jaar" tick={{ fontSize: 12 }} />
               <YAxis tickFormatter={(v: number) => `€${Math.round(v / 1000)}k`} tick={{ fontSize: 12 }} width={72} domain={['auto', 'auto']} />
-              <Tooltip formatter={(v: number) => eur(v)} />
+              <Tooltip formatter={tooltipEur} />
               <Legend />
               {actief.map((sc, i) => (
                 <Line key={sc.id} type="monotone" dataKey={sc.naam} stroke={KLEUREN[i % KLEUREN.length]} strokeWidth={2} dot={false} />

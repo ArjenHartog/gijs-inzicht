@@ -117,3 +117,6 @@ export function Uitleg({ regels }: { regels: Regel[] }) {
 export function Leeg({ children }: { children: ReactNode }) {
   return <p className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">{children}</p>;
 }
+
+/** formatter voor Recharts-tooltips (waarde kan leeg zijn) */
+export const tooltipEur = (v: unknown) => eur(Number(v ?? 0));

@@ -6,6 +6,7 @@ Alle keuzes die we bespreken, met wie besliste en waarom. Nieuwste bovenaan. Elk
 
 | # | Datum | Besluit | Wie | Waarom / gevolg |
 |---|---|---|---|---|
+| 30 | 2026-11-11 | Alle pakketten bijgewerkt naar de nieuwste versie die minstens twee weken oud is: React 19.3.1, Vite 8.3.5, @vitejs/plugin-react 6.1.2, Recharts 3.10.1, TypeScript 7.0.2, Vitest 5.0.5, Tailwind 4.3.3 | Arjen (verzoek), Claude (versiekeuze) | Twee-wekenregel tegen supply-chain-risico; Vite 8.3.8, plugin-react 6.3.0, Vitest 5.1.0 en Tailwind 4.3.5 waren nog te vers. Recharts 3 vereiste een kleine aanpassing in de tooltip-formatter |
 | 29 | 2026-11-11 | Buiten scope gehouden: AOW-leeftijd en ouderenkorting, schenk- en erfbelasting, toeslagen en kindgebonden budget, fiscale eenheid tussen BV's, gedeeld gezag met een ex-partner | Claude | Staat in de footer; kandidaten voor de volgende ronde (zie open punten) |
 | 28 | 2026-11-11 | Scenariovergelijking rekent met de leeftijd van de kinderen nu; de toekomstprojectie laat kinderen ouder worden (combinatiekorting stopt bij 12, vermogen telt niet meer mee vanaf 18) | Claude | Zo vergelijk je scenario's op dezelfde situatie, en de projectie is realistisch |
 | 27 | 2026-11-11 | Nieuwe scenario's: "Bekende wijzigingen 2027" (nu ook zelfstandigenaftrek €900), "Vpb één tarief 25,8%", "Zelfstandigenaftrek afgeschaft"; editor uitgebreid met heffingskortingen, ondernemersaftrek, Vpb en gebruikelijk loon | Claude | Past bij de wens "elk denkbaar scenario" nu er ondernemers en BV's in zitten |

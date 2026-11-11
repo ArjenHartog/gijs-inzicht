@@ -5,7 +5,7 @@ import type { Situatie } from '../model/types';
 import { vergelijk } from '../model/diff';
 import { bereken, vermogenPerBox } from '../tax/calc';
 import { PRESET_SCENARIOS } from '../tax/parameters';
-import { BOX_KLEUR, BOX_NAAM, Card, Knop, Leeg, eur, eurSigned } from './ui';
+import { BOX_KLEUR, BOX_NAAM, Card, Knop, Leeg, eur, eurSigned, tooltipEur } from './ui';
 
 const HUIDIG = 'huidig';
 const netto = (s: Situatie) => {
@@ -55,7 +55,7 @@ export function Veranderingen({ state, dispatch }: { state: State; dispatch: Dis
               <CartesianGrid stroke="#e2e8f0" vertical={false} />
               <XAxis dataKey="label" tick={{ fontSize: 12 }} />
               <YAxis tickFormatter={(v: number) => `€${Math.round(v / 1000)}k`} tick={{ fontSize: 12 }} width={64} />
-              <Tooltip formatter={(v: number) => eur(v)} />
+              <Tooltip formatter={tooltipEur} />
               <Line type="monotone" dataKey="netto" name="Netto vermogen" stroke="#0f172a" strokeWidth={2} dot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>

@@ -4,7 +4,7 @@ import { CATEGORIES, type Category } from '../model/types';
 import { nieuwId, type Actie, type State } from '../model/store';
 import { bereken } from '../tax/calc';
 import { PRESET_SCENARIOS, pct, type Scenario, type TaxParams } from '../tax/parameters';
-import { BOX_KLEUR, Card, GetalInput, Knop, Leeg, Uitleg, eur, eurSigned } from './ui';
+import { BOX_KLEUR, Card, GetalInput, Knop, Leeg, Uitleg, eur, eurSigned, tooltipEur } from './ui';
 
 const STATUS_LABEL: Record<Scenario['status'], string> = {
   geldend: 'Geldend recht',
@@ -53,7 +53,7 @@ export function Scenarios({ state, dispatch }: { state: State; dispatch: Dispatc
               <CartesianGrid stroke="#e2e8f0" vertical={false} />
               <XAxis dataKey="naam" tick={{ fontSize: 11 }} interval={0} height={70} tickFormatter={(n: string) => (n.length > 28 ? n.slice(0, 27) + '…' : n)} angle={-12} textAnchor="end" />
               <YAxis tickFormatter={(v: number) => `€${Math.round(v / 1000)}k`} tick={{ fontSize: 12 }} width={56} />
-              <Tooltip formatter={(v: number) => eur(v)} />
+              <Tooltip formatter={tooltipEur} />
               <Legend />
               <Bar dataKey="Box 1 (na kortingen)" stackId="a" fill={BOX_KLEUR[1]} />
               <Bar dataKey="Box 2" stackId="a" fill={BOX_KLEUR[2]} />

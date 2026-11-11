@@ -3,7 +3,7 @@ import type { Box } from '../model/types';
 import type { State } from '../model/store';
 import { bereken, vermogenPerBox } from '../tax/calc';
 import { PRESET_SCENARIOS } from '../tax/parameters';
-import { BOX_KLEUR, BOX_NAAM, Card, Kpi, Leeg, Uitleg, eur } from './ui';
+import { BOX_KLEUR, BOX_NAAM, Card, Kpi, Leeg, Uitleg, eur, tooltipEur } from './ui';
 
 export function Dashboard({ state, naar }: { state: State; naar: (tab: 'Huishouden' | 'Bezittingen') => void }) {
   const s = state.huidig;
@@ -111,7 +111,7 @@ export function Dashboard({ state, naar }: { state: State; naar: (tab: 'Huishoud
                     <Cell key={d.box} fill={BOX_KLEUR[d.box]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(x: number) => eur(x)} />
+                <Tooltip formatter={tooltipEur} />
               </PieChart>
             </ResponsiveContainer>
           </div>
