@@ -1,13 +1,14 @@
 import { useRef, useState } from 'react';
-import { exporteer, isGeldigeState, leegState, useStore, voorbeeldState } from './model/store';
+import { exporteer, leegState, migreer, useStore, voorbeeldState } from './model/store';
 import { Dashboard } from './components/Dashboard';
 import { Invoer } from './components/Invoer';
+import { Huishouden } from './components/Huishouden';
 import { Veranderingen } from './components/Veranderingen';
 import { Scenarios } from './components/Scenarios';
 import { Toekomst } from './components/Toekomst';
 import { Knop } from './components/ui';
 
-const TABS = ['Overzicht', 'Invoer', 'Veranderingen', "Scenario's", 'Toekomst'] as const;
+const TABS = ['Overzicht', 'Huishouden', 'Bezittingen', 'Veranderingen', "Scenario's", 'Toekomst'] as const;
 type Tab = (typeof TABS)[number];
 
 export default function App() {
@@ -18,9 +19,9 @@ export default function App() {
 
   const importeer = async (f: File) => {
     try {
-      const data = JSON.parse(await f.text());
-      if (!isGeldigeState(data)) throw new Error();
-      dispatch({ type: 'vervang', state: { ...leegState(), ...data } });
+      const data = migreer(JSON.parse(await f.text()));
+      if (!data) throw new Error();
+      dispatch({ type: 'vervang', state: data });
       setMelding('Gegevens geïmporteerd.');
     } catch {
       setMelding('Dit bestand kon niet worden gelezen.');
@@ -49,7 +50,7 @@ export default function App() {
                 e.target.value = '';
               }}
             />
-            {state.huidig.items.length === 0 ? (
+            {state.huidig.items.length === 0 && state.huidig.bvs.length === 0 ? (
               <Knop variant="primair" onClick={() => dispatch({ type: 'vervang', state: voorbeeldState() })}>
                 Laad voorbeeld
               </Knop>
@@ -88,8 +89,9 @@ export default function App() {
             </button>
           </div>
         )}
-        {tab === 'Overzicht' && <Dashboard state={state} naarInvoer={() => setTab('Invoer')} />}
-        {tab === 'Invoer' && <Invoer state={state} dispatch={dispatch} />}
+        {tab === 'Overzicht' && <Dashboard state={state} naar={setTab} />}
+        {tab === 'Huishouden' && <Huishouden state={state} dispatch={dispatch} />}
+        {tab === 'Bezittingen' && <Invoer state={state} dispatch={dispatch} />}
         {tab === 'Veranderingen' && <Veranderingen state={state} dispatch={dispatch} />}
         {tab === "Scenario's" && <Scenarios state={state} dispatch={dispatch} />}
         {tab === 'Toekomst' && <Toekomst state={state} />}
@@ -97,8 +99,8 @@ export default function App() {
 
       <footer className="mx-auto max-w-6xl px-4 pb-8 text-xs text-slate-500">
         Je gegevens blijven in deze browser en worden nergens naartoe gestuurd. Gebruik Exporteer om een back-up te maken. Dit is een
-        rekenhulp, geen belastingaangifte of fiscaal advies. Bedragen zijn schattingen op basis van de regels per 11-11-2026; heffingskortingen,
-        Wet Hillen, toeslagen en verliesverrekening zijn vereenvoudigd of niet meegenomen.
+        rekenhulp, geen belastingaangifte of fiscaal advies. Bedragen zijn schattingen op basis van de regels per 11-11-2026, voor personen onder de AOW-leeftijd. Niet
+        meegenomen: ouderenkorting, Wet Hillen, toeslagen, verliesverrekening, fiscale eenheid tussen BV's en schenk- en erfbelasting.
       </footer>
     </div>
   );

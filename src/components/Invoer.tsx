@@ -1,15 +1,29 @@
 import { useState, type Dispatch } from 'react';
-import { CATEGORIES, type Category } from '../model/types';
+import { CATEGORIES, type Category, type Eigenaar, type Situatie } from '../model/types';
 import type { Actie, State } from '../model/store';
+import { nettoVermogen } from '../tax/calc';
 import { BOX_KLEUR, Card, GetalInput, Knop, Leeg, eur } from './ui';
 
 const CATS = Object.keys(CATEGORIES) as Category[];
+
+export function eigenaarOpties(s: Situatie): { waarde: Eigenaar; label: string }[] {
+  const opties: { waarde: Eigenaar; label: string }[] = s.partner
+    ? [
+        { waarde: 'samen', label: 'Samen' },
+        { waarde: 'ik', label: s.ik.naam },
+        { waarde: 'partner', label: s.partner.naam },
+      ]
+    : [{ waarde: 'samen', label: s.ik.naam }];
+  return [...opties, ...s.kinderen.map((k) => ({ waarde: `kind:${k.id}` as Eigenaar, label: k.naam }))];
+}
 
 export function Invoer({ state, dispatch }: { state: State; dispatch: Dispatch<Actie> }) {
   const s = state.huidig;
   const [datum, setDatum] = useState(new Date().toISOString().slice(0, 10));
   const [notitie, setNotitie] = useState('');
   const [opgeslagen, setOpgeslagen] = useState(false);
+  const opties = eigenaarOpties(s);
+  const waardeEigenaar = (e: Eigenaar) => (!s.partner && (e === 'ik' || e === 'partner') ? 'samen' : e);
 
   return (
     <div className="space-y-5">
@@ -22,20 +36,21 @@ export function Invoer({ state, dispatch }: { state: State; dispatch: Dispatch<A
         }
       >
         <p className="mb-3 text-sm text-slate-600">
-          Kies per regel de soort; de box volgt daaruit. Vul schulden als positief bedrag in. <strong>Direct %</strong> is rente,
-          dividend of huur per jaar; <strong>groei %</strong> is verwachte waardestijging. Die twee zijn alleen nodig voor de
-          scenario's met werkelijk rendement en de toekomstprojectie.
+          Kies per regel de soort; de box volgt daaruit. Vul schulden als positief bedrag in. <strong>Direct %</strong> is rente, dividend of huur per
+          jaar; <strong>groei %</strong> is verwachte waardestijging (nodig voor werkelijk rendement en de toekomstprojectie). BV's en eenmanszaken
+          voeg je toe onder Huishouden.
         </p>
         {s.items.length === 0 ? (
-          <Leeg>Nog geen regels. Voeg je spaarrekening, beleggingen, woning, hypotheek of BV toe.</Leeg>
+          <Leeg>Nog geen regels. Voeg je spaarrekening, beleggingen, woning of hypotheek toe.</Leeg>
         ) : (
           <div className="-mx-4 overflow-x-auto sm:mx-0">
-            <table className="w-full min-w-[760px] text-sm">
+            <table className="w-full min-w-[900px] text-sm">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wide text-slate-500">
                   <th className="px-2 py-2">Box</th>
                   <th className="px-2 py-2">Omschrijving</th>
                   <th className="px-2 py-2">Soort</th>
+                  <th className="px-2 py-2">Van</th>
                   <th className="px-2 py-2 text-right">Waarde</th>
                   <th className="px-2 py-2 text-right">Direct %</th>
                   <th className="px-2 py-2 text-right">Groei %</th>
@@ -75,6 +90,20 @@ export function Invoer({ state, dispatch }: { state: State; dispatch: Dispatch<A
                           ))}
                         </select>
                       </td>
+                      <td className="w-36 px-2 py-2">
+                        <select
+                          aria-label="Eigenaar"
+                          className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5"
+                          value={waardeEigenaar(i.eigenaar)}
+                          onChange={(e) => dispatch({ type: 'itemWijzigen', id: i.id, wijziging: { eigenaar: e.target.value as Eigenaar } })}
+                        >
+                          {opties.map((o) => (
+                            <option key={o.waarde} value={o.waarde}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
                       <td className="w-40 px-2 py-2">
                         <GetalInput label="Waarde" suffix="€" stap={1000} waarde={i.waarde} onChange={(n) => dispatch({ type: 'itemWijzigen', id: i.id, wijziging: { waarde: n } })} />
                       </td>
@@ -104,63 +133,36 @@ export function Invoer({ state, dispatch }: { state: State; dispatch: Dispatch<A
         )}
       </Card>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <Card titel="Inkomen per jaar">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="text-sm">
-              <span className="mb-1 block text-slate-600">Bruto inkomen uit werk/pensioen (box 1)</span>
-              <GetalInput suffix="€" stap={1000} waarde={s.inkomen.arbeid} onChange={(n) => dispatch({ type: 'inkomen', wijziging: { arbeid: n } })} />
-            </label>
-            <label className="text-sm">
-              <span className="mb-1 block text-slate-600">Heffingskortingen (box 1)</span>
-              <GetalInput suffix="€" stap={100} waarde={s.inkomen.heffingskortingen} onChange={(n) => dispatch({ type: 'inkomen', wijziging: { heffingskortingen: n } })} />
-            </label>
-            <label className="text-sm">
-              <span className="mb-1 block text-slate-600">Dividend/winst uit eigen BV (box 2)</span>
-              <GetalInput suffix="€" stap={1000} waarde={s.inkomen.box2Inkomen} onChange={(n) => dispatch({ type: 'inkomen', wijziging: { box2Inkomen: n } })} />
-            </label>
-            <label className="flex items-center gap-2 self-end pb-2 text-sm">
-              <input type="checkbox" checked={s.fiscaalPartner} onChange={(e) => dispatch({ type: 'partner', waarde: e.target.checked })} className="h-4 w-4" />
-              Ik heb een fiscaal partner
-            </label>
-          </div>
-          <p className="mt-3 text-xs text-slate-500">
-            Heffingskortingen (algemene heffingskorting, arbeidskorting) staan op je jaaropgaaf of aangifte. Met fiscaal partner verdubbelen
-            het heffingsvrij vermogen en de schuldendrempel in box 3; vul dan het gezamenlijke box 3-vermogen in.
-          </p>
-        </Card>
-
-        <Card titel="Momentopname opslaan">
-          <p className="mb-3 text-sm text-slate-600">
-            Sla je huidige situatie op met een datum. Onder <strong>Veranderingen</strong> zie je daarna precies wat er tussen twee momenten
-            veranderd is.
-          </p>
-          <form
-            className="flex flex-wrap items-end gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              dispatch({ type: 'snapshotOpslaan', datum, notitie });
-              setNotitie('');
-              setOpgeslagen(true);
-              setTimeout(() => setOpgeslagen(false), 2500);
-            }}
-          >
-            <label className="text-sm">
-              <span className="mb-1 block text-slate-600">Datum</span>
-              <input type="date" required value={datum} onChange={(e) => setDatum(e.target.value)} className="rounded-md border border-slate-300 px-2 py-1.5" />
-            </label>
-            <label className="min-w-40 flex-1 text-sm">
-              <span className="mb-1 block text-slate-600">Notitie</span>
-              <input value={notitie} onChange={(e) => setNotitie(e.target.value)} placeholder="Bijv. na verkoop aandelen" className="w-full rounded-md border border-slate-300 px-2 py-1.5" />
-            </label>
-            <Knop type="submit" variant="primair">
-              Opslaan
-            </Knop>
-          </form>
-          {opgeslagen && <p className="mt-2 text-sm text-emerald-700">Opgeslagen.</p>}
-          <p className="mt-3 text-xs text-slate-500">Netto vermogen nu: {eur(s.items.reduce((t, i) => t + (CATEGORIES[i.categorie].isSchuld ? -i.waarde : i.waarde), 0))}</p>
-        </Card>
-      </div>
+      <Card titel="Momentopname opslaan">
+        <p className="mb-3 text-sm text-slate-600">
+          Sla je huidige situatie (inclusief huishouden, BV's en ondernemingen) op met een datum. Onder <strong>Veranderingen</strong> zie je daarna wat
+          er tussen twee momenten veranderd is.
+        </p>
+        <form
+          className="flex flex-wrap items-end gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            dispatch({ type: 'snapshotOpslaan', datum, notitie });
+            setNotitie('');
+            setOpgeslagen(true);
+            setTimeout(() => setOpgeslagen(false), 2500);
+          }}
+        >
+          <label className="text-sm">
+            <span className="mb-1 block text-slate-600">Datum</span>
+            <input type="date" required value={datum} onChange={(e) => setDatum(e.target.value)} className="rounded-md border border-slate-300 px-2 py-1.5" />
+          </label>
+          <label className="min-w-40 flex-1 text-sm">
+            <span className="mb-1 block text-slate-600">Notitie</span>
+            <input value={notitie} onChange={(e) => setNotitie(e.target.value)} placeholder="Bijv. na verkoop aandelen" className="w-full rounded-md border border-slate-300 px-2 py-1.5" />
+          </label>
+          <Knop type="submit" variant="primair">
+            Opslaan
+          </Knop>
+        </form>
+        {opgeslagen && <p className="mt-2 text-sm text-emerald-700">Opgeslagen.</p>}
+        <p className="mt-3 text-xs text-slate-500">Netto vermogen nu: {eur(nettoVermogen(s))}</p>
+      </Card>
     </div>
   );
 }

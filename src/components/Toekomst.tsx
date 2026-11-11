@@ -12,7 +12,7 @@ export function Toekomst({ state }: { state: State }) {
   const [gekozen, setGekozen] = useState<string[]>(['huidig-2026', 'box3-2027', 'wwr-2028-kabinet', 'vwb-2030-kabinet3']);
   const [jaren, setJaren] = useState(15);
   const s = state.huidig;
-  if (s.items.length === 0) return <Leeg>Vul eerst je bezittingen in onder Invoer.</Leeg>;
+  if (s.items.length === 0 && s.bvs.length === 0) return <Leeg>Vul eerst je bezittingen in onder Bezittingen of Huishouden.</Leeg>;
 
   const startJaar = new Date().getFullYear() + 1;
   const actief = alle.filter((x) => gekozen.includes(x.id));
@@ -36,8 +36,9 @@ export function Toekomst({ state }: { state: State }) {
         }
       >
         <p className="mb-3 text-sm text-slate-600">
-          Elk scenario wordt alsof het vanaf {startJaar} geldt. Opbrengsten worden herbelegd, box 3-belasting gaat van je vermogen af,
-          inkomen en schulden blijven gelijk. Gebruikt de direct- en groei-% uit je invoer.
+          Elk scenario wordt alsof het vanaf {startJaar} geldt. Opbrengsten in box 3 worden herbelegd, box 3-belasting gaat van je vermogen af,
+          inkomen, BV-winst en schulden blijven gelijk. Kinderen worden ouder: vanaf 18 telt hun vermogen niet meer mee en vanaf 12 vervalt de
+          combinatiekorting. Gebruikt de groei-% uit je invoer.
         </p>
         <div className="h-80">
           <ResponsiveContainer>

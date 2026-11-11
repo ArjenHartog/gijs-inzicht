@@ -6,6 +6,18 @@ Alle keuzes die we bespreken, met wie besliste en waarom. Nieuwste bovenaan. Elk
 
 | # | Datum | Besluit | Wie | Waarom / gevolg |
 |---|---|---|---|---|
+| 29 | 2026-11-11 | Buiten scope gehouden: AOW-leeftijd en ouderenkorting, schenk- en erfbelasting, toeslagen en kindgebonden budget, fiscale eenheid tussen BV's, gedeeld gezag met een ex-partner | Claude | Staat in de footer; kandidaten voor de volgende ronde (zie open punten) |
+| 28 | 2026-11-11 | Scenariovergelijking rekent met de leeftijd van de kinderen nu; de toekomstprojectie laat kinderen ouder worden (combinatiekorting stopt bij 12, vermogen telt niet meer mee vanaf 18) | Claude | Zo vergelijk je scenario's op dezelfde situatie, en de projectie is realistisch |
+| 27 | 2026-11-11 | Nieuwe scenario's: "Bekende wijzigingen 2027" (nu ook zelfstandigenaftrek €900), "Vpb één tarief 25,8%", "Zelfstandigenaftrek afgeschaft"; editor uitgebreid met heffingskortingen, ondernemersaftrek, Vpb en gebruikelijk loon | Claude | Past bij de wens "elk denkbaar scenario" nu er ondernemers en BV's in zitten |
+| 26 | 2026-11-11 | Bezittingscategorieën: "aanmerkelijk belang" vervalt (wordt een BV), nieuw zijn "lijfrente/banksparen" (box 1, vrijgesteld) en "studieschuld" (box 3-schuld). Elke bezitting heeft een eigenaar: samen, ik, partner of een kind. Opgeslagen data van versie 1 wordt automatisch omgezet | Claude | Nodig voor partner en kinderen; bestaande invoer gaat niet verloren |
+| 25 | 2026-11-11 | Eenmanszaak/zzp/vof: winst in box 1 met zelfstandigenaftrek €1.200 (bij urencriterium), startersaftrek €2.123, mkb-winstvrijstelling 12,7%; arbeidsinkomen = winst na ondernemersaftrek | Claude | Cijfers 2026 geverifieerd (MKB Servicedesk). Definitie arbeidsinkomen is een **aanname** |
+| 24 | 2026-11-11 | BV's: per BV apart Vpb (19% tot €200.000, daarna 25,8%, geen fiscale eenheid); gebruiker vult winst, DGA-loon en dividend zelf in; waarschuwing als DGA-loon onder het gebruikelijk loon van €58.000 ligt | Claude | Cijfers 2026 geverifieerd. Dividend en DGA-loon zijn keuzes van de DGA, dus invoer en geen berekening |
+| 23 | 2026-11-11 | Kinderen: vermogen van kinderen onder 18 telt volledig mee in box 3 van de ouders; leeftijd op 1 januari = jaar − geboortejaar − 1 | Claude / Aanname | Regel volgens Belastingdienst. **Aanname**: geen gedeeld gezag met een ex-partner (dan zou het de helft zijn) en verjaardag na 1 januari |
+| 22 | 2026-11-11 | Combinatiekorting: start €6.240, opbouw 11,45%, max €3.032; alleen voor de minstverdienende werkende ouder met een kind onder 12 | Claude / Aanname | Max en leeftijdsgrens geverifieerd (Rijksoverheid); startpunt is **afgeleid** uit max €3.032 bij €32.720 |
+| 21 | 2026-11-11 | Partners: gezamenlijke posten (eigen woning, box 2-inkomen, box 3) worden automatisch zo verdeeld dat jullie samen het minst betalen, in stappen van 10%; bij gelijke uitkomst wint de verdeling die het dichtst bij 50/50 zit | Claude | Dat mag in de aangifte ook; de app toont de gekozen verdeling |
+| 20 | 2026-11-11 | Heffingskortingen worden automatisch berekend (algemene heffingskorting met afbouw over het verzamelinkomen, arbeidskorting, combinatiekorting) in plaats van zelf invullen; niet te verzilveren kortingen worden gemeld | Claude | Met partner, kinderen en ondernemers niet meer zelf in te vullen. Cijfers 2026 geverifieerd (Rijksoverheid, Grant Thornton) |
+| 19 | 2026-11-11 | Nieuw tabblad Huishouden; "Invoer" heet nu "Bezittingen" | Claude | Inkomen, partner, kinderen, ondernemingen en BV's horen bij elkaar |
+| 18 | 2026-11-11 | Uitbreiding: fiscaal partner met eigen inkomen, kinderen, meerdere BV's, eenmanszaken/zzp/vof | Arjen | Wens van Arjen: alle onderdelen van de gezinssituatie |
 | 17 | 2026-11-11 | Alles wat we bespreken, inclusief keuzes, wordt vastgelegd in dit log en in het plandocument | Arjen | Spoor van beslissingen; `CLAUDE.md` verplicht bijwerken |
 | 16 | 2026-11-11 | CI: actions naar Node 24-versies (checkout v7, setup-node v7, upload-pages-artifact v5, deploy-pages v5), runner vast op `ubuntu-24.04`, Node 24 | Arjen (verzoek), Claude (versies) | Waarschuwingen over Node 20 en Ubuntu 26-migratie weg; geen verrassingen bij runner-wissel |
 | 15 | 2026-11-11 | Repo openbaar gemaakt; live op https://arjenhartog.github.io/gijs-inzicht/ | Arjen | GitHub-plan ondersteunt geen Pages op privé-repo. Alternatieven waren GitHub Pro of alleen lokaal. Alleen code is openbaar, nooit bedragen |
@@ -29,4 +41,8 @@ Alle keuzes die we bespreken, met wie besliste en waarom. Nieuwste bovenaan. Elk
 - Fiscale cijfers controleren op belastingdienst.nl (box 1-schijven, eigenwoningforfait, villataks).
 - Forfaits sparen/schulden 2026 zijn voorlopig; begin 2027 definitief.
 - Stand Wet werkelijk rendement box 3 volgen (Eerste Kamer nog niet gestemd per 11-11-2026).
-- Volgende ronde: heffingskortingen automatisch, Wet Hillen, verliesverrekening, AOW-tarieven.
+- Volgende ronde: Wet Hillen, verliesverrekening box 3, AOW-tarieven en ouderenkorting.
+- Schenken aan kinderen (vrijstelling 2026: €6.908 per kind per jaar, eenmalig €33.129 voor 18–40 jaar) en erfbelasting als scenario's.
+- Kindgebonden budget en andere toeslagen.
+- Gedeeld gezag met een ex-partner (helft van het vermogen van het kind).
+- Fiscale eenheid tussen holding en werk-BV.

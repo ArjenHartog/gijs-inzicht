@@ -29,12 +29,18 @@ export function Scenarios({ state, dispatch }: { state: State; dispatch: Dispatc
   const [bewerk, setBewerk] = useState<Scenario | null>(null);
   const s = state.huidig;
 
-  if (s.items.length === 0 && !s.inkomen.arbeid) return <Leeg>Vul eerst je situatie in onder Invoer.</Leeg>;
+  if (s.items.length === 0 && s.bvs.length === 0 && s.ondernemingen.length === 0 && !s.ik.loon) return <Leeg>Vul eerst je situatie in onder Huishouden en Bezittingen.</Leeg>;
 
   const basis = bereken(s, PRESET_SCENARIOS[0].params);
   const actief = alle.filter((x) => gekozen.includes(x.id));
   const rijen = actief.map((sc) => ({ sc, u: bereken(s, sc.params) }));
-  const grafiek = rijen.map(({ sc, u }) => ({ naam: sc.naam, 'Box 1': Math.round(u.box1.belasting), 'Box 2': Math.round(u.box2.belasting), 'Box 3': Math.round(u.box3.belasting) }));
+  const grafiek = rijen.map(({ sc, u }) => ({
+    naam: sc.naam,
+    'Box 1 (na kortingen)': Math.round(u.box1),
+    'Box 2': Math.round(u.box2),
+    'Box 3': Math.round(u.box3),
+    Vpb: Math.round(u.vpbTotaal),
+  }));
 
   const toggle = (id: string) => setGekozen((g) => (g.includes(id) ? g.filter((x) => x !== id) : [...g, id]));
 
@@ -49,9 +55,10 @@ export function Scenarios({ state, dispatch }: { state: State; dispatch: Dispatc
               <YAxis tickFormatter={(v: number) => `€${Math.round(v / 1000)}k`} tick={{ fontSize: 12 }} width={56} />
               <Tooltip formatter={(v: number) => eur(v)} />
               <Legend />
-              <Bar dataKey="Box 1" stackId="a" fill={BOX_KLEUR[1]} />
+              <Bar dataKey="Box 1 (na kortingen)" stackId="a" fill={BOX_KLEUR[1]} />
               <Bar dataKey="Box 2" stackId="a" fill={BOX_KLEUR[2]} />
               <Bar dataKey="Box 3" stackId="a" fill={BOX_KLEUR[3]} />
+              {s.bvs.length > 0 && <Bar dataKey="Vpb" stackId="a" fill="#64748b" />}
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -60,9 +67,10 @@ export function Scenarios({ state, dispatch }: { state: State; dispatch: Dispatc
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide text-slate-500">
                 <th className="px-2 py-2">Scenario</th>
-                <th className="px-2 py-2 text-right">Box 1</th>
+                <th className="px-2 py-2 text-right">Box 1*</th>
                 <th className="px-2 py-2 text-right">Box 2</th>
                 <th className="px-2 py-2 text-right">Box 3</th>
+                <th className="px-2 py-2 text-right">Vpb</th>
                 <th className="px-2 py-2 text-right">Totaal</th>
                 <th className="px-2 py-2 text-right">t.o.v. nu</th>
               </tr>
@@ -73,12 +81,13 @@ export function Scenarios({ state, dispatch }: { state: State; dispatch: Dispatc
                   <td className="px-2 py-2">
                     <div className="font-medium">{sc.naam}</div>
                     <div className="mt-1">
-                      <Uitleg regels={u.box3.regels} />
+                      <Uitleg regels={[...u.regels.box3, ...u.regels.box1]} />
                     </div>
                   </td>
-                  <td className="px-2 py-2 text-right tabular-nums">{eur(u.box1.belasting)}</td>
-                  <td className="px-2 py-2 text-right tabular-nums">{eur(u.box2.belasting)}</td>
-                  <td className="px-2 py-2 text-right tabular-nums">{eur(u.box3.belasting)}</td>
+                  <td className="px-2 py-2 text-right tabular-nums">{eur(u.box1)}</td>
+                  <td className="px-2 py-2 text-right tabular-nums">{eur(u.box2)}</td>
+                  <td className="px-2 py-2 text-right tabular-nums">{eur(u.box3)}</td>
+                  <td className="px-2 py-2 text-right tabular-nums">{eur(u.vpbTotaal)}</td>
                   <td className="px-2 py-2 text-right font-semibold tabular-nums">{eur(u.totaal)}</td>
                   <td className={`px-2 py-2 text-right font-medium tabular-nums ${u.totaal - basis.totaal > 0 ? 'text-red-700' : u.totaal < basis.totaal ? 'text-emerald-700' : ''}`}>
                     {eurSigned(u.totaal - basis.totaal)}
@@ -88,6 +97,10 @@ export function Scenarios({ state, dispatch }: { state: State; dispatch: Dispatc
             </tbody>
           </table>
         </div>
+        <p className="mt-2 text-xs text-slate-500">
+          * Box 1 na aftrek van heffingskortingen. Alle scenario's rekenen met je huidige situatie en de leeftijd van je kinderen nu
+          {s.partner ? ', met per scenario de gunstigste verdeling tussen partners' : ''}.
+        </p>
       </Card>
 
       {bewerk && (
@@ -211,16 +224,40 @@ function ScenarioEditor({ scenario, onOpslaan, onAnnuleer }: { scenario: Scenari
         </fieldset>
 
         <fieldset>
+          <legend className="mb-2 text-sm font-semibold" style={{ color: BOX_KLEUR[1] }}>
+            Heffingskortingen en ondernemers
+          </legend>
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <EurVeld label="Algemene heffingskorting max." waarde={p.kortingen.ahkMax} onChange={(n) => zet((q) => void (q.kortingen.ahkMax = n))} />
+            <EurVeld label="AHK-afbouw vanaf (verzamelinkomen)" waarde={p.kortingen.ahkAfbouwVanaf} onChange={(n) => zet((q) => void (q.kortingen.ahkAfbouwVanaf = n))} />
+            <PctVeld label="AHK-afbouw %" waarde={p.kortingen.ahkAfbouwPct} onChange={(f) => zet((q) => void (q.kortingen.ahkAfbouwPct = f))} />
+            <EurVeld label="Arbeidskorting max." waarde={p.kortingen.akMax} onChange={(n) => zet((q) => void (q.kortingen.akMax = n))} />
+            <PctVeld label="Arbeidskorting afbouw %" waarde={p.kortingen.akAfbouwPct} onChange={(f) => zet((q) => void (q.kortingen.akAfbouwPct = f))} />
+            <EurVeld label="Combinatiekorting max." waarde={p.kortingen.iackMax} onChange={(n) => zet((q) => void (q.kortingen.iackMax = n))} />
+            <EurVeld label="Zelfstandigenaftrek" waarde={p.ondernemer.zelfstandigenaftrek} onChange={(n) => zet((q) => void (q.ondernemer.zelfstandigenaftrek = n))} />
+            <EurVeld label="Startersaftrek" waarde={p.ondernemer.startersaftrek} onChange={(n) => zet((q) => void (q.ondernemer.startersaftrek = n))} />
+            <PctVeld label="Mkb-winstvrijstelling" waarde={p.ondernemer.mkbVrijstelling} onChange={(f) => zet((q) => void (q.ondernemer.mkbVrijstelling = f))} />
+          </div>
+        </fieldset>
+
+        <fieldset>
           <legend className="mb-2 text-sm font-semibold" style={{ color: BOX_KLEUR[2] }}>
-            Box 2
+            Box 2 en vennootschapsbelasting
           </legend>
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {p.box2.schijven.map((s, i) => (
-              <div key={i} className="contents">
-                <PctVeld label={`Tarief schijf ${i + 1}`} waarde={s.tarief} onChange={(f) => zet((q) => void (q.box2.schijven[i].tarief = f))} />
-                {s.tot !== null && <EurVeld label={`Grens schijf ${i + 1}`} waarde={s.tot} onChange={(n) => zet((q) => void (q.box2.schijven[i].tot = n))} />}
+              <div key={`b2-${i}`} className="contents">
+                <PctVeld label={`Box 2 tarief schijf ${i + 1}`} waarde={s.tarief} onChange={(f) => zet((q) => void (q.box2.schijven[i].tarief = f))} />
+                {s.tot !== null && <EurVeld label={`Box 2 grens schijf ${i + 1} (p.p.)`} waarde={s.tot} onChange={(n) => zet((q) => void (q.box2.schijven[i].tot = n))} />}
               </div>
             ))}
+            {p.vpb.schijven.map((s, i) => (
+              <div key={`vpb-${i}`} className="contents">
+                <PctVeld label={`Vpb tarief schijf ${i + 1}`} waarde={s.tarief} onChange={(f) => zet((q) => void (q.vpb.schijven[i].tarief = f))} />
+                {s.tot !== null && <EurVeld label={`Vpb grens schijf ${i + 1}`} waarde={s.tot} onChange={(n) => zet((q) => void (q.vpb.schijven[i].tot = n))} />}
+              </div>
+            ))}
+            <EurVeld label="Gebruikelijk loon DGA" waarde={p.vpb.gebruikelijkLoon} onChange={(n) => zet((q) => void (q.vpb.gebruikelijkLoon = n))} />
           </div>
         </fieldset>
 

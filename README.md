@@ -16,7 +16,9 @@ npm run build
 
 - `src/tax/` – rekenkern (pure functies) en **alle** fiscale parameters met bronnen (`parameters.ts`)
 - `src/model/` – types, opslag (reducer + localStorage), vergelijking van momentopnames
-- `src/components/` – schermen: Overzicht, Invoer, Veranderingen, Scenario's, Toekomst
+- `src/components/` – schermen: Overzicht, Huishouden (partner, kinderen, BV's, eenmanszaken), Bezittingen, Veranderingen, Scenario's, Toekomst
+
+- `docs/BESLUITEN.md` – alle keuzes en aannames
 
 Regel: componenten roepen alleen `src/tax` en `src/model` aan; de rekenkern kent geen React.
 

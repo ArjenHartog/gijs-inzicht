@@ -1,8 +1,22 @@
 import { useEffect, useReducer } from 'react';
-import { CATEGORIES, leegInkomen, type Category, type Inkomen, type Item, type Situatie, type Snapshot } from './types';
-import type { Scenario } from '../tax/parameters';
+import {
+  CATEGORIES,
+  legeSituatie,
+  nieuwPersoon,
+  type BV,
+  type Category,
+  type Item,
+  type Kind,
+  type Onderneming,
+  type Persoon,
+  type PersoonId,
+  type Situatie,
+  type Snapshot,
+} from './types';
+import { normaliseerParams, type Scenario } from '../tax/parameters';
 
 export interface State {
+  versie: 2;
   huidig: Situatie;
   snapshots: Snapshot[];
   eigenScenarios: Scenario[];
@@ -16,51 +30,68 @@ export const nieuwItem = (categorie: Category = 'spaargeld'): Item => ({
   id: nieuwId(),
   naam: CATEGORIES[categorie].label,
   categorie,
+  eigenaar: 'samen',
   waarde: 0,
   directPct: CATEGORIES[categorie].defaultDirect,
   groeiPct: CATEGORIES[categorie].defaultGroei,
 });
 
-export const leegState = (): State => ({
-  huidig: { items: [], inkomen: leegInkomen(), fiscaalPartner: false },
-  snapshots: [],
-  eigenScenarios: [],
-});
+export const nieuwKind = (): Kind => ({ id: nieuwId(), naam: 'Kind', geboortejaar: new Date().getFullYear() - 5 });
+export const nieuweOnderneming = (): Onderneming => ({ id: nieuwId(), naam: 'Eenmanszaak', eigenaar: 'ik', winst: 0, urencriterium: true, starter: false, vermogen: 0 });
+export const nieuweBV = (): BV => ({ id: nieuwId(), naam: 'BV', eigenaar: 'ik', waarde: 0, groeiPct: 4, winst: 0, dgaLoon: 0, dividend: 0 });
+
+export const leegState = (): State => ({ versie: 2, huidig: legeSituatie(), snapshots: [], eigenScenarios: [] });
 
 export const voorbeeldState = (): State => {
+  const kind1 = { id: nieuwId(), naam: 'Sam', geboortejaar: 2017 };
+  const kind2 = { id: nieuwId(), naam: 'Noor', geboortejaar: 2021 };
   const items: Item[] = [
     { ...nieuwItem('eigen_woning'), naam: 'Woning', waarde: 525000 },
     { ...nieuwItem('hypotheek'), naam: 'Hypotheek', waarde: 310000, directPct: 3.6 },
-    { ...nieuwItem('aanmerkelijk_belang'), naam: 'Holding BV', waarde: 180000 },
     { ...nieuwItem('spaargeld'), naam: 'Spaarrekening', waarde: 65000 },
-    { ...nieuwItem('beleggingen'), naam: 'ETF-portefeuille', waarde: 140000 },
-    { ...nieuwItem('crypto'), naam: 'Bitcoin', waarde: 8000 },
+    { ...nieuwItem('beleggingen'), naam: 'ETF-portefeuille', waarde: 140000, eigenaar: 'ik' },
+    { ...nieuwItem('crypto'), naam: 'Bitcoin', waarde: 8000, eigenaar: 'partner' },
+    { ...nieuwItem('lijfrente'), naam: 'Lijfrenterekening', waarde: 30000, eigenaar: 'partner' },
+    { ...nieuwItem('spaargeld'), naam: 'Spaarrekening Sam', waarde: 9000, eigenaar: `kind:${kind1.id}` },
+    { ...nieuwItem('spaargeld'), naam: 'Spaarrekening Noor', waarde: 4000, eigenaar: `kind:${kind2.id}` },
   ];
   const huidig: Situatie = {
+    ik: { naam: 'Ik', loon: 0, overigInkomen: 0, aftrekposten: 0 },
+    partner: { naam: 'Partner', loon: 46000, overigInkomen: 0, aftrekposten: 1500 },
+    kinderen: [kind1, kind2],
+    ondernemingen: [{ ...nieuweOnderneming(), naam: 'Advieswerk (zzp)', eigenaar: 'partner', winst: 18000, vermogen: 6000 }],
+    bvs: [
+      { ...nieuweBV(), naam: 'Holding BV', waarde: 220000, winst: 95000, dgaLoon: 0, dividend: 30000 },
+      { ...nieuweBV(), naam: 'Werk BV', waarde: 60000, winst: 40000, dgaLoon: 62000, dividend: 0 },
+    ],
     items,
-    inkomen: { arbeid: 85000, heffingskortingen: 2800, box2Inkomen: 20000 },
-    fiscaalPartner: false,
   };
   const vorig: Snapshot = {
+    ...structuredClone(huidig),
     id: nieuwId(),
     datum: '2026-01-01',
     notitie: 'Begin 2026 (voorbeeld)',
-    fiscaalPartner: false,
-    inkomen: huidig.inkomen,
-    items: items.map((i) =>
-      i.categorie === 'beleggingen' ? { ...i, waarde: 121000 } : i.categorie === 'spaargeld' ? { ...i, waarde: 72000 } : i.categorie === 'hypotheek' ? { ...i, waarde: 316000 } : i,
+    items: huidig.items.map((i) =>
+      i.categorie === 'beleggingen' ? { ...i, waarde: 121000 } : i.naam === 'Spaarrekening' ? { ...i, waarde: 72000 } : i.categorie === 'hypotheek' ? { ...i, waarde: 316000 } : i,
     ),
+    bvs: huidig.bvs.map((b) => (b.naam === 'Holding BV' ? { ...b, waarde: 205000 } : b)),
   };
-  return { huidig, snapshots: [vorig], eigenScenarios: [] };
+  return { versie: 2, huidig, snapshots: [vorig], eigenScenarios: [] };
 };
+
+export type Lijst = 'kinderen' | 'ondernemingen' | 'bvs';
+type LijstItem = { kinderen: Kind; ondernemingen: Onderneming; bvs: BV };
 
 export type Actie =
   | { type: 'vervang'; state: State }
   | { type: 'itemToevoegen'; categorie?: Category }
   | { type: 'itemWijzigen'; id: string; wijziging: Partial<Item> }
   | { type: 'itemVerwijderen'; id: string }
-  | { type: 'inkomen'; wijziging: Partial<Inkomen> }
-  | { type: 'partner'; waarde: boolean }
+  | { type: 'persoon'; wie: PersoonId; wijziging: Partial<Persoon> }
+  | { type: 'partner'; aan: boolean }
+  | { type: 'lijstToevoegen'; lijst: Lijst }
+  | { type: 'lijstWijzigen'; lijst: Lijst; id: string; wijziging: Partial<LijstItem[Lijst]> }
+  | { type: 'lijstVerwijderen'; lijst: Lijst; id: string }
   | { type: 'snapshotOpslaan'; datum: string; notitie: string }
   | { type: 'snapshotVerwijderen'; id: string }
   | { type: 'snapshotHerstellen'; id: string }
@@ -68,6 +99,8 @@ export type Actie =
   | { type: 'scenarioVerwijderen'; id: string };
 
 const metHuidig = (s: State, f: (h: Situatie) => Situatie): State => ({ ...s, huidig: f(s.huidig) });
+
+const nieuwInLijst = { kinderen: nieuwKind, ondernemingen: nieuweOnderneming, bvs: nieuweBV };
 
 export function reducer(s: State, a: Actie): State {
   switch (a.type) {
@@ -92,22 +125,44 @@ export function reducer(s: State, a: Actie): State {
       }));
     case 'itemVerwijderen':
       return metHuidig(s, (h) => ({ ...h, items: h.items.filter((i) => i.id !== a.id) }));
-    case 'inkomen':
-      return metHuidig(s, (h) => ({ ...h, inkomen: { ...h.inkomen, ...a.wijziging } }));
+    case 'persoon':
+      return metHuidig(s, (h) =>
+        a.wie === 'ik' ? { ...h, ik: { ...h.ik, ...a.wijziging } } : h.partner ? { ...h, partner: { ...h.partner, ...a.wijziging } } : h,
+      );
     case 'partner':
-      return metHuidig(s, (h) => ({ ...h, fiscaalPartner: a.waarde }));
+      return metHuidig(s, (h) => {
+        if (a.aan) return { ...h, partner: h.partner ?? nieuwPersoon('Partner') };
+        // zonder partner: alles van de partner gaat naar 'ik'
+        return {
+          ...h,
+          partner: null,
+          items: h.items.map((i) => (i.eigenaar === 'partner' ? { ...i, eigenaar: 'ik' } : i)),
+          ondernemingen: h.ondernemingen.map((o) => ({ ...o, eigenaar: 'ik' })),
+          bvs: h.bvs.map((b) => ({ ...b, eigenaar: 'ik' })),
+        };
+      });
+    case 'lijstToevoegen':
+      return metHuidig(s, (h) => ({ ...h, [a.lijst]: [...h[a.lijst], nieuwInLijst[a.lijst]()] }));
+    case 'lijstWijzigen':
+      return metHuidig(s, (h) => ({ ...h, [a.lijst]: (h[a.lijst] as { id: string }[]).map((x) => (x.id === a.id ? { ...x, ...a.wijziging } : x)) }));
+    case 'lijstVerwijderen':
+      return metHuidig(s, (h) => {
+        const n = { ...h, [a.lijst]: (h[a.lijst] as { id: string }[]).filter((x) => x.id !== a.id) };
+        // bezittingen van een verwijderd kind gaan naar 'samen'
+        if (a.lijst === 'kinderen') n.items = h.items.map((i) => (i.eigenaar === `kind:${a.id}` ? { ...i, eigenaar: 'samen' } : i));
+        return n;
+      });
     case 'snapshotOpslaan': {
       const snap: Snapshot = { ...structuredClone(s.huidig), id: nieuwId(), datum: a.datum, notitie: a.notitie };
-      const snapshots = [...s.snapshots, snap].sort((x, y) => x.datum.localeCompare(y.datum));
-      return { ...s, snapshots };
+      return { ...s, snapshots: [...s.snapshots, snap].sort((x, y) => x.datum.localeCompare(y.datum)) };
     }
     case 'snapshotVerwijderen':
       return { ...s, snapshots: s.snapshots.filter((x) => x.id !== a.id) };
     case 'snapshotHerstellen': {
       const snap = s.snapshots.find((x) => x.id === a.id);
       if (!snap) return s;
-      const { items, inkomen, fiscaalPartner } = structuredClone(snap);
-      return { ...s, huidig: { items, inkomen, fiscaalPartner } };
+      const { id: _id, datum: _d, notitie: _n, ...situatie } = structuredClone(snap);
+      return { ...s, huidig: situatie };
     }
     case 'scenarioOpslaan': {
       const rest = s.eigenScenarios.filter((x) => x.id !== a.scenario.id);
@@ -118,18 +173,47 @@ export function reducer(s: State, a: Actie): State {
   }
 }
 
-export function isGeldigeState(x: unknown): x is State {
-  const s = x as State;
-  return !!s && typeof s === 'object' && !!s.huidig && Array.isArray(s.huidig.items) && Array.isArray(s.snapshots);
+// ---------- migratie van versie 1 (één persoon, inkomen-blok, AB als bezitting) ----------
+
+interface SituatieV1 {
+  items: (Omit<Item, 'eigenaar' | 'categorie'> & { categorie: Category | 'aanmerkelijk_belang' })[];
+  inkomen?: { arbeid?: number; box2Inkomen?: number };
+  fiscaalPartner?: boolean;
+}
+
+function migreerSituatie(x: Situatie | SituatieV1): Situatie {
+  if ('ik' in x) return { ...legeSituatie(), ...x };
+  const v1 = x as SituatieV1;
+  const ab = v1.items.filter((i) => i.categorie === 'aanmerkelijk_belang');
+  return {
+    ik: { ...nieuwPersoon('Ik'), loon: v1.inkomen?.arbeid ?? 0 },
+    partner: v1.fiscaalPartner ? nieuwPersoon('Partner') : null,
+    kinderen: [],
+    ondernemingen: [],
+    bvs: ab.map((i, n) => ({ ...nieuweBV(), id: i.id, naam: i.naam, waarde: i.waarde, groeiPct: i.groeiPct, dividend: n === 0 ? (v1.inkomen?.box2Inkomen ?? 0) : 0 })),
+    items: v1.items.filter((i) => i.categorie !== 'aanmerkelijk_belang').map((i) => ({ ...i, categorie: i.categorie as Category, eigenaar: 'samen' })),
+  };
+}
+
+export function migreer(x: unknown): State | null {
+  const s = x as { huidig?: unknown; snapshots?: unknown[]; eigenScenarios?: Scenario[] };
+  if (!s || typeof s !== 'object' || !s.huidig || !Array.isArray(s.snapshots)) return null;
+  try {
+    return {
+      versie: 2,
+      huidig: migreerSituatie(s.huidig as Situatie),
+      snapshots: (s.snapshots as Snapshot[]).map((sn) => ({ ...migreerSituatie(sn), id: sn.id, datum: sn.datum, notitie: sn.notitie ?? '' })),
+      eigenScenarios: (s.eigenScenarios ?? []).map((sc) => ({ ...sc, params: normaliseerParams(sc.params) })),
+    };
+  } catch {
+    return null;
+  }
 }
 
 function laad(): State {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (isGeldigeState(parsed)) return { ...leegState(), ...parsed };
-    }
+    if (raw) return migreer(JSON.parse(raw)) ?? leegState();
   } catch {
     /* lege of geblokkeerde opslag: begin leeg */
   }

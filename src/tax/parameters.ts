@@ -4,8 +4,15 @@ import type { Category } from '../model/types';
  * Alle fiscale parameters staan hier, per scenario. Nergens anders hardcoden.
  * Bronnen (geraadpleegd 11-11-2026):
  *  - Box 1 2026: https://www.rijksoverheid.nl/themas/werk/inkomstenbelasting/soorten-inkomstenbelasting
+ *  - Heffingskortingen 2026: https://www.rijksoverheid.nl/onderwerpen/inkomstenbelasting/vraag-en-antwoord/wat-is-een-heffingskorting-en-welke-heffingskortingen-zijn-er
+ *    en https://www.grantthornton.nl/insights/human-capital-services/loonheffingen-in-2026-de-cijfers/
+ *  - AHK-afbouw over verzamelinkomen: https://www.accountant.nl/nieuws/2026/10/belastingdruk-box-3-kan-oplopen-tot-54-procent/
  *  - Box 2 2026: https://www.onderneming.nl/belastingschijven-2026/
+ *  - Vpb en gebruikelijk loon 2026: https://www.mkbservicedesk.nl/nieuws/ondernemersnieuws/vpb-tarief-in-2025-en-2026
+ *  - Ondernemersaftrek 2026: https://www.mkbservicedesk.nl/nieuws/ondernemersnieuws/zelfstandigenaftrek-2024-verlaagd
+ *    en https://www.mkbservicedesk.nl/belastingen/aftrekposten/startersaftrek
  *  - Box 3 2026: https://www.sra.nl/nieuws/600041/2026/01/box-3-percentages-vrijstellingen-en-bedragen-2026
+ *  - Box 3 minderjarige kinderen: https://www.belastingdienst.nl/wps/wcm/connect/fisin/fisin2026/bezittingen_en_schulden_box_3_
  *  - Box 3 2027/2028, Kamerbrief 29-09-2026: https://www.sra.nl/nieuws/004501/2026/09/nog-geen-duidelijkheid-over-box-3-vanaf-2028
  *  - Wet werkelijk rendement (TK 12-02-2026): https://www.vanlanschotkempen.com/nl-nl/private-banking/inspiratie/vermogensregie/box-3-wetsvoorstel-werkelijk-rendement
  */
@@ -30,10 +37,34 @@ export interface TaxParams {
     /** hypothetisch: eigen woning + hypotheek verhuizen naar box 3 */
     eigenWoningNaarBox3: boolean;
   };
+  kortingen: {
+    ahkMax: number;
+    /** afbouw over verzamelinkomen (box 1 + 2 + 3) */
+    ahkAfbouwVanaf: number;
+    ahkAfbouwPct: number;
+    /** opbouw arbeidskorting als schijven over arbeidsinkomen (laatste schijf 0%) */
+    akOpbouw: Schijf[];
+    akMax: number;
+    akAfbouwVanaf: number;
+    akAfbouwPct: number;
+    /** inkomensafhankelijke combinatiekorting */
+    iackMax: number;
+    iackVanaf: number;
+    iackPct: number;
+    /** jongste kind moet op 1 januari jonger zijn dan deze leeftijd */
+    iackKindLeeftijd: number;
+  };
+  ondernemer: {
+    zelfstandigenaftrek: number;
+    startersaftrek: number;
+    mkbVrijstelling: number;
+  };
   box2: {
     schijven: Schijf[];
-    /** partners: eerste schijf verdubbelt (bij gezamenlijk AB) */
-    partnerVerdubbelt: boolean;
+  };
+  vpb: {
+    schijven: Schijf[];
+    gebruikelijkLoon: number;
   };
   box3: {
     stelsel: Box3Stelsel;
@@ -72,18 +103,48 @@ export const PARAMS_2026: TaxParams = {
       { tot: 78426, tarief: 0.3756 },
       { tot: null, tarief: 0.495 },
     ],
-    ewf: 0.0035, // approximate: 0,35% voor WOZ tot villataksgrens
-    villataksGrens: 1_330_000, // approximate
-    villataksTarief: 0.0235, // approximate
+    ewf: 0.0035, // approximate: 0,35% voor WOZ tot villataksgrens, niet geverifieerd
+    villataksGrens: 1_330_000, // approximate, niet geverifieerd
+    villataksTarief: 0.0235, // approximate, niet geverifieerd
     hraMaxTarief: 0.3756,
     eigenWoningNaarBox3: false,
+  },
+  kortingen: {
+    ahkMax: 3115,
+    ahkAfbouwVanaf: 29736,
+    ahkAfbouwPct: 0.06398,
+    akOpbouw: [
+      { tot: 11965, tarief: 0.08324 },
+      { tot: 25845, tarief: 0.31009 },
+      { tot: 45592, tarief: 0.0195 },
+      { tot: null, tarief: 0 },
+    ],
+    akMax: 5685,
+    akAfbouwVanaf: 45592,
+    akAfbouwPct: 0.0651,
+    iackMax: 3032,
+    // startpunt afgeleid: maximum €3.032 bereikt bij €32.720 met opbouw 11,45% (opbouw% gelijk aan 2025)
+    iackVanaf: 6240,
+    iackPct: 0.1145,
+    iackKindLeeftijd: 12,
+  },
+  ondernemer: {
+    zelfstandigenaftrek: 1200,
+    startersaftrek: 2123,
+    mkbVrijstelling: 0.127,
   },
   box2: {
     schijven: [
       { tot: 68843, tarief: 0.245 },
       { tot: null, tarief: 0.31 },
     ],
-    partnerVerdubbelt: true,
+  },
+  vpb: {
+    schijven: [
+      { tot: 200000, tarief: 0.19 },
+      { tot: null, tarief: 0.258 },
+    ],
+    gebruikelijkLoon: 58000,
   },
   box3: {
     stelsel: 'forfaitair',
@@ -109,6 +170,19 @@ const met = (mut: (p: TaxParams) => void): TaxParams => {
   return p;
 };
 
+/** vult ontbrekende velden aan met 2026-waarden (voor eigen scenario's uit een oudere versie) */
+export function normaliseerParams(p: Partial<TaxParams>): TaxParams {
+  const basis = clone(PARAMS_2026);
+  return {
+    box1: { ...basis.box1, ...p.box1 },
+    kortingen: { ...basis.kortingen, ...p.kortingen },
+    ondernemer: { ...basis.ondernemer, ...p.ondernemer },
+    box2: { schijven: p.box2?.schijven ?? basis.box2.schijven },
+    vpb: { ...basis.vpb, ...p.vpb },
+    box3: { ...basis.box3, ...p.box3 },
+  };
+}
+
 export const PRESET_SCENARIOS: Scenario[] = [
   {
     id: 'huidig-2026',
@@ -120,14 +194,15 @@ export const PRESET_SCENARIOS: Scenario[] = [
   },
   {
     id: 'box3-2027',
-    naam: 'Box 3 in 2027 (Kamerbrief sept 2026)',
+    naam: 'Bekende wijzigingen 2027',
     jaar: 2027,
     status: 'voorstel',
     toelichting:
-      'Heffingsvrij vermogen terug naar €30.846 per persoon en forfait overige bezittingen naar 7,87%. Box 1 en 2 gelijk aan 2026 gehouden (nog niet bekend).',
+      'Box 3: heffingsvrij vermogen terug naar €30.846 p.p. en forfait overige bezittingen 7,87% (Kamerbrief sept 2026). Zelfstandigenaftrek naar €900. Overige cijfers gelijk aan 2026 gehouden.',
     params: met((p) => {
       p.box3.heffingsvrijVermogen = 30846;
       p.box3.forfaitOverig = 0.0787;
+      p.ondernemer.zelfstandigenaftrek = 900;
     }),
   },
   {
@@ -148,8 +223,7 @@ export const PRESET_SCENARIOS: Scenario[] = [
     naam: 'Werkelijk rendement 2028, kabinetsscenario 1/2',
     jaar: 2028,
     status: 'kabinetsoptie',
-    toelichting:
-      'Als het wetsvoorstel, maar met heffingsvrij resultaat verlaagd naar €1.000 (Kamerbrief 29-09-2026).',
+    toelichting: 'Als het wetsvoorstel, maar met heffingsvrij resultaat verlaagd naar €1.000 (Kamerbrief 29-09-2026).',
     params: met((p) => {
       p.box3.stelsel = 'werkelijk';
       p.box3.heffingsvrijResultaat = 1000;
@@ -162,7 +236,7 @@ export const PRESET_SCENARIOS: Scenario[] = [
     jaar: 2028,
     status: 'kabinetsoptie',
     toelichting:
-      'Koersstijging van aandelen, obligaties en vastgoed wordt pas belast bij verkoop. Rente, dividend en huur jaarlijks. Schuif "realisatie" om te kiezen hoeveel waardegroei je jaarlijks verkoopt.',
+      'Koersstijging van aandelen, obligaties en vastgoed wordt pas belast bij verkoop. Rente, dividend en huur jaarlijks. Aanname: je verkoopt jaarlijks 20% van je waardegroei (aanpasbaar).',
     params: met((p) => {
       p.box3.stelsel = 'werkelijk';
       p.box3.heffingsvrijResultaat = 1000;
@@ -176,7 +250,7 @@ export const PRESET_SCENARIOS: Scenario[] = [
     jaar: 2030,
     status: 'kabinetsoptie',
     toelichting:
-      'Alle waardegroei pas belast bij verkoop. Aangenomen: €1.000 heffingsvrij resultaat en 36%, de details zijn nog niet bekend.',
+      'Alle waardegroei pas belast bij verkoop. Aangenomen: €1.000 heffingsvrij resultaat, 36% en 20% jaarlijkse verkoop; de details zijn nog niet bekend.',
     params: met((p) => {
       p.box3.stelsel = 'werkelijk';
       p.box3.heffingsvrijResultaat = 1000;
@@ -213,6 +287,27 @@ export const PRESET_SCENARIOS: Scenario[] = [
     toelichting: 'Eén vlak tarief van 33% over al het inkomen uit aanmerkelijk belang.',
     params: met((p) => {
       p.box2.schijven = [{ tot: null, tarief: 0.33 }];
+    }),
+  },
+  {
+    id: 'vpb-vlak',
+    naam: 'Vpb één tarief 25,8%',
+    jaar: 2030,
+    status: 'hypothetisch',
+    toelichting: 'Het lage Vpb-tarief van 19% over de eerste €200.000 verdwijnt.',
+    params: met((p) => {
+      p.vpb.schijven = [{ tot: null, tarief: 0.258 }];
+    }),
+  },
+  {
+    id: 'zelfst-weg',
+    naam: 'Zelfstandigenaftrek afgeschaft',
+    jaar: 2030,
+    status: 'hypothetisch',
+    toelichting: 'Zelfstandigen- en startersaftrek naar €0; mkb-winstvrijstelling blijft 12,7%.',
+    params: met((p) => {
+      p.ondernemer.zelfstandigenaftrek = 0;
+      p.ondernemer.startersaftrek = 0;
     }),
   },
   {
